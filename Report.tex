@@ -484,7 +484,8 @@ Figure \ref{fig:Processed Figure} shows Figure \ref{fig:Original Figure} after t
 The first step in implementation was to obtain the datasets. These were fetched 
 from \url{http://ufldl.stanford.edu/housenumbers/} using a modified version of 
 the download code from the deep learning course at Udacity 
-\url{https://www.udacity.com/course/deep-learning--ud730}. The data was then 
+\url{https://www.udacity.com/course/deep-learning--ud730}. The code can be found here
+\url{https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/udacity} The data was then 
 extracted using more code modified from the deep learning course. 
 
 While implementing the data preprocessing familiarity with numpy was needed to help 
@@ -496,7 +497,8 @@ automatically.
 The use of the h5py module was new during this project. h5py was used to read 
 data from the .m file and parse it into python dictionaries. This was one of the 
 trickier parts of the project and help from the Udacity forms really helped get 
-a handle on the way that h5py uses references and how to fetch data from it.
+a handle on the way that h5py uses references and how to fetch data from it. The 
+code used is adapted from \url{https://github.com/hangyao/street_view_house_numbers/blob/master/3_preprocess_multi.ipynb}
 
 Once the preprocessing code was written the next problem that was ran into is the
 limitations of the development environment. This was all done on a laptop and when the 

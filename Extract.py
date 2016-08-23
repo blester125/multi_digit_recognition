@@ -6,6 +6,11 @@ import os
 import sys
 import tarfile
 
+##
+# Adapted from the code in Udacity Deep Leanring assignments
+# https://www.udacity.com/course/deep-learning--ud730
+# https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/udacity
+
 def extract(filename, force=False):
 	root = os.path.splitext(filename)[0]
 	root = os.path.splitext(root)[0]

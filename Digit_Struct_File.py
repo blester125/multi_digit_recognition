@@ -6,6 +6,10 @@ from six.moves import range
 import h5py
 import numpy as np
 
+##
+# Adapted from the h5py model by hangyao here:
+# https://github.com/hangyao/street_view_house_numbers/blob/master/3_preprocess_multi.ipynb
+
 # Class for accessing h5py data
 #  file: The input file (matlab)
 #  digitStructName: The ref to all the file names

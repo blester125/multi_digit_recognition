@@ -11,7 +11,7 @@ The following libraries are required:
  * numpy 1.10.4
  * scipy 0.17.0
  * matplotlib 1.5.1
- * PIL
+ * PIL 1.1.7
  * opencv 3.1.0
 
 The program is run with `python Camera.py`

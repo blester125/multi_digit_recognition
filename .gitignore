@@ -1,0 +1,15 @@
+extra/*
+latex/*
+log/*
+test/*
+!test/441.png
+!test/943.png
+!test/2481.png
+!test/11415.png
+!test/11775.png
+train/*
+*.pyc
+*.tar.gz
+*.npy
+Capstone_Brian_Lester/*
+Capstone_Brian_Lester.zip

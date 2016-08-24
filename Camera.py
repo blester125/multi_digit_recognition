@@ -70,12 +70,11 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 
 	if display != "":
 		print("Displaying Examples with bounding boxes")
-	example_indeces = np.random.randint(0, len(train_data), size=5)
-	examples = train_data[example_indeces]
-	Analytics.load()
-	Analytics.train_samples = examples
-	Analytics.save()
-	if display != "":
+		example_indeces = np.random.randint(0, len(train_data), size=5)
+		examples = train_data[example_indeces]
+		Analytics.load()
+		Analytics.train_samples = examples
+		Analytics.save()
 		for e in examples:
 			display_example(e, train_folder)
 	
@@ -131,11 +130,12 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 	test_data = dsf.get_all_digit_structure_by_digit()
 	print("Parsed test data")
 
-	example_indeces = np.random.randint(0, len(test_data), size=5)
-	examples = test_data[example_indeces]
-	#Analytics.load()
-	#Analytics.test_samples = examples
-	#Analytics.save()
+	if display != "":	
+		example_indeces = np.random.randint(0, len(test_data), size=5)
+		examples = test_data[example_indeces]
+		Analytics.load()
+		Analytics.test_samples = examples
+		Analytics.save()
 
 	# Preprocess test data and fetch labels
 	print("Generating data set and processing data.")

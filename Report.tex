@@ -31,13 +31,13 @@ Capstone Project}
    Deep Learning has become one of the most popular specializations in Machine 
    Learning due to the massive increase in both the amount of data available and 
    the amount of computing power available. With increases in both of these the 
-   size and possible depth of neural networks has been increase, which has allowed for 
+   size and possible depth of neural networks has been increased, which has allowed for 
    them to be applied to various new fields, especially image processing. Image
-   processing is often done using Convolutional networks that reduce the size of
+   processing is often done using convolutional networks that reduce the size of
    images while increasing their depth. This paper applies a deep convolutional 
    neural network to the problem of classifying multiple digits in natural 
    scenes. The depth of this network allows for one network to classify each 
-   digit rather than traditional approach of localize, segment, and classifying 
+   digit rather than traditional approach of localize, segment, and classify 
    each digit individually. 
 \end{abstract}
 
@@ -54,7 +54,7 @@ This also has other applications. As self driving cars become more popular the
 cars need a way to determine the speed limit. Without extensive Vehicle to 
 Infrastructure communication a car needs to know the speed limit in an area, this 
 can be done from map data or by reading the Speed Limit sign. This is especially 
-in the case of road construction where map data may not be up to date. Multi digit 
+the case of road construction where map data may not be up to date. Multi digit 
 recognition can also be used to automatically scan passports and the like. 
 Clearly this technology can be applied in many areas.
 
@@ -119,9 +119,12 @@ image from 0 to 10 where 10 means that that particular digit is not in the image
 This metric is sufficient for this project because recognizing multiple digits 
 with a single neural network is the point of the project and how many 
 classifications the network makes that are correct is a good metric for how well the
-network is preforming. This is the accuracy value that was used in training and 
-for evaluating the validation set. This metric is good for evaluating the model 
-for this project. 
+network is preforming. This accuracy can be found using the following equation
+
+$100.0*\frac{\textit{Number of correct classifications}}{\textit{Number of samples}*\textit{The maximum number of digits}}$ 
+where the maximum number of digits is 5. This is the accuracy value that was used 
+in training and for evaluating the validation set. This metric is good for 
+evaluating the model for this project. 
 
 If this network was used in an application where accuracy is 
 even more important (for example creating addresses in automatically generated 
@@ -188,7 +191,7 @@ Table \ref{table:lengths} shows the length of various sequences in the datasets.
 collected across all of the datasets. This table shows that there are a similar 
 number of most of the lengths. There are very few images with five digits and 
 only one that has six digits. This sequence of length 6 could be considered an 
-outlier; however, it was not removed from out dataset because in the real world 
+outlier; however, it was not removed from the dataset because in the real world 
 some addresses or images will have 6 or more digits and the model should be 
 able to handle it. The table shows that the Training set has a mode of length 2,
 the extra set of length 3, and the test set of length 2.
@@ -258,7 +261,7 @@ found in the Training dataset.}
 \subsection{Exploratory Visualization}
 The dataset is just pictures and the features are just pixel values. There are 
 not various features that can be plotted against each other to find features that 
-are correlated or related. Lacking this sort of visualization means feature cannot 
+are correlated or related. Lacking this sort of visualization means features cannot 
 be found that could be removed. Instead of plotting features examples from the 
 training dataset have been added. Figure \ref{fig:Original Figure} is an image from the training dataset that has labels 
 of length: 3 and values: 1, 0, 2, 10, 10. This means that the image contains the 
@@ -437,7 +440,10 @@ should try to beat.
 
 Data processing for this problem was based on the processing methods described
 by Goodfellow \etal in their paper ~\cite{goodfellow}. First a bounding box that encompasses 
-all the bounding boxes for the digits in the images is found. This box is then 
+all the bounding boxes for the digits in the images is found. This box is not included
+in the labels from the dataset. It is instead programmatically found by finding 
+the highest, lowest, leftmost, and rightmost parts of the provided bounding boxes 
+(the one that surround each digit) and creating a box of that size. This box is then 
 scaled up by 30\%. The image is then cropped to the size of this scaled up box.
 This cropped image is then resized to be 50 pixels by 50 pixels. In the paper
 by Goodfellow \etal ~\cite{goodfellow} these images are resized to 64 pixels by 64 pixels. This
@@ -618,11 +624,13 @@ high variance. The means that the model does not overfit to the training data an
 is able to generalize to new data. This model is therefore a good fit to solve 
 this problem.
 
-Outside of using the Test set to test the model the performance was vetted using 
+In addition to using the Test set to test the model's performance, the performance was vetted using 
 both a camera application and the ability to run the model on various images. The 
 model preforms reasonably well on these applications. However when these input 
 methods have a slight problem in that they preform rather poor when the digits 
-are not centered in the image. They also preform better when the digits are about
+are not centered in the image. Unlike Test set images these Camera images do not 
+have bounding boxes and therefor don't have a way to center the images. 
+They also preform better when the digits are about
 30\% smaller than the boundaries of the images. These input methods show that the 
 model is sensitive to slight changes in the input. This could be fixed with a 
 deeper network and more input where the digits are in various places of the input.
@@ -665,6 +673,12 @@ The results of this model is quite strong and can be trusted in applications whe
 wrong answers are not the worst thing in the world. If the network was being used 
 for mapping data where a wrong address could mean sending a user to the wrong place 
 then the model would have to be trained more.
+
+Currently only one validation set is used to validate the model. Normally cross-validation 
+is used to create multiple validation sets which are used to validate the model. This 
+insures that there is not some hidden pattern in the validation set that is leading 
+to abnormally high or abnormally low results. This was not done due to time 
+constraints but will be done in the future when improvements are made to the model.
 
 This model generates digits found in natural scenes. The model creates usable 
 output and is a good solution to the problem.

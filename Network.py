@@ -47,6 +47,7 @@ class Network():
 
 		self.logits = inference(self.x, self.keep_prob)
 		self.loss = loss(self.logits, self.y)
+		#self.loss2 = loss2(self.logits, self.y)
 		self.train_op = train(self.loss)
 		self.prediction = prediction(self.logits)
 		#self.accuracy = accuracy2(self.prediction, self.y)
@@ -91,7 +92,7 @@ class Network():
 							feed_dict=feed_dict)
 
 				if (step % 500 == 0): 
-					print("Minibatch loss at step %d: %f" % (step, l))
+					print("Minibatch loss at step %d: %f, %f" % (step, l, l2))
 					train_pred = self.prediction.eval(
 										feed_dict={
 											self.x: batch_data, 
@@ -468,19 +469,17 @@ def inference(images, keep_prob):
 
 		return [logits1, logits2, logits3, logits4, logits5, logits6]
 
-# def loss(logits, labels):
-# 	#labels = tf.cast(labels, tf.int64)
-# 	total_loss = []
-# 	for i in range(len(logits)):
-# 		total_loss.append( tf.reduce_mean(
-# 					tf.nn.sparse_softmax_cross_entropy_with_logits(
-# 						logits[i], 
-# 						labels[:,i]
-# 					)
-# 				))
-# 	return tf.add_n(total_loss)
-	
 def loss(logits, labels):
+	loss_per_digit = [tf.reduce_mean(
+							tf.nn.sparse_softmax_cross_entropy_with_logits(
+							logits[i],
+							labels[:,i]
+						))
+						for i in range(NUM_LOGITS)]
+	loss_value = tf.add_n(loss_per_digit)
+	return loss_value
+	
+def loss2(logits, labels):
 	with tf.variable_scope('loss') as scope:
 		loss_value = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[0], labels[:,0])) +\
 					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[1], labels[:,1])) +\

@@ -1,0 +1,41 @@
+\begin{thebibliography}{1}\itemsep=-1pt
+
+\bibitem{Google}
+M.~Abadi, A.~Agarwal, P.~Barham, E.~Brevdo, Z.~Chen, C.~Citro, G.~S. Corrado,
+  A.~Davis, J.~Dean, M.~Devin, S.~Ghemawat, I.~Goodfellow, A.~Harp, G.~Irving,
+  M.~Isard, Y.~Jia, R.~Jozefowicz, L.~Kaiser, M.~Kudlur, J.~Levenberg,
+  D.~Man\'{e}, R.~Monga, S.~Moore, D.~Murray, C.~Olah, M.~Schuster, J.~Shlens,
+  B.~Steiner, I.~Sutskever, K.~Talwar, P.~Tucker, V.~Vanhoucke, V.~Vasudevan,
+  F.~Vi\'{e}gas, O.~Vinyals, P.~Warden, M.~Wattenberg, M.~Wicke, Y.~Yu, and
+  X.~Zheng.
+\newblock {TensorFlow}: Large-scale machine learning on heterogeneous systems,
+  2015.
+\newblock Software available from tensorflow.org.
+
+\bibitem{xavier}
+X.~Glorot and Y.~Bengio.
+\newblock Understanding the difficulty of training deep feedforward neural
+  networks, 2010.
+
+\bibitem{goodfellow}
+I.~J. Goodfellow, Y.~Bulatov, J.~Ibarz, S.~Arnoud, and V.~Shet.
+\newblock Multi-digit number recognition from street view imagery using deep
+  convolutional neural networks, 2014.
+
+\bibitem{alex}
+A.~Krizhevsky, I.~Sutskever, and G.~E. Hinton.
+\newblock Imagenet classification with deep convolutional neural networks,
+  2012.
+
+\bibitem{lecun-89c}
+Y.~LeCun, L.~D. Jackel, B.~Boser, J.~S.~D. amd H.~P.~Graf, I.~Guyon,
+  D.~Henderson, R.~E. Howard, and W.~Hubbard.
+\newblock Handwritten digit recognition: Applications of neural net chips and
+  automatic learning, 1999.
+
+\bibitem{sermanet-icpr-12}
+P.~Sermanet, S.~Chintala, and Y.~LeCun.
+\newblock Convolutional neural networks applied to house numbers digit
+  classification, 2012.
+
+\end{thebibliography}

@@ -477,18 +477,19 @@ def loss(logits, labels):
 						))
 						for i in range(NUM_LOGITS)]
 	loss_value = tf.add_n(loss_per_digit)
+	tf.scalar_summary('loss', loss_value)
 	return loss_value
 	
-def loss2(logits, labels):
-	with tf.variable_scope('loss') as scope:
-		loss_value = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[0], labels[:,0])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[1], labels[:,1])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[2], labels[:,2])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[3], labels[:,3])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[4], labels[:,4])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[5], labels[:,5]))
-	tf.scalar_summary('loss', loss_value)				 
-	return loss_value
+#def loss2(logits, labels):
+#	with tf.variable_scope('loss') as scope:
+#		loss_value = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[0], labels[:,0])) +\
+#					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[1], labels[:,1])) +\
+#					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[2], labels[:,2])) +\
+#					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[3], labels[:,3])) +\
+#					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[4], labels[:,4])) +\
+#					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[5], labels[:,5]))
+#	tf.scalar_summary('loss', loss_value)				 
+#	return loss_value
 
 def train(total_loss):
 	with tf.variable_scope('train') as scope:

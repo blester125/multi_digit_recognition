@@ -35,7 +35,6 @@ def generate_dataset(data, folder):
 	return dataset, labels
 
 def getLabels(digitStruct, folder):
-	print(digitStruct['filename'])
 	label = np.ones([6], dtype=int) * 10
 	boxes = digitStruct['boxes']
 	num_digits = len(boxes)

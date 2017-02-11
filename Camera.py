@@ -15,7 +15,7 @@ from Digit_Struct_File import DigitStructFile
 from Generate_Dataset import generate_dataset
 from Data_Split import split
 from Save import save
-from Preprocess import preprocess_camera, preprocess_file_image
+from Preprocess import preprocess_camera, preprocess_file_image, normalize
 
 import Analytics
 import Network
@@ -38,16 +38,16 @@ def extract_data(train_filename, test_filename, extra_filename):
 	extra_folder = extract(extra_filename)
 	return train_folder, test_folder, extra_folder
 
-def process_and_visualize(train_folder="train", test_folder="test", extra_folder="extra", display=""):
+def process_and_visualize(train_folder="data/train", test_folder="data/test", extra_folder="data/extra", display="", single=False):
 	if not(
-		os.path.exists("train") or 
-		os.path.exists("test") or 
-		os.path.exists("extra")
+		os.path.exists("data/train") or 
+		os.path.exists("data/test") or 
+		os.path.exists("data/extra")
 		):
 		if not(
-			os.path.exists("train.tar.gz") or 
-			os.path.exists("test.tar.gz") or 
-			os.path.exists("extra.tar.gz")
+			os.path.exists("data/train.tar.gz") or 
+			os.path.exists("data/test.tar.gz") or 
+			os.path.exists("data/extra.tar.gz")
 			):
 			# No tar.gz files found, data must be downloaded
 			tr, t, e = download_data()
@@ -56,10 +56,14 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 	
 	# Set sequence lengths to 0 so multiple runs do not add to old run totals
 	Analytics.load()
-	Analytics.sequence_lengths = {'train': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
-								  'extra': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
-								  'test' : {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}}
+	Analytics.sequence_lengths = {'data/train': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
+								  'data/extra': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
+								  'data/test' : {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}}
 	Analytics.save()
+
+	data_points = 5
+	if single:
+		data_points = 1
 
 	# Get the DigitStructs for Training Data
 	fin = os.path.join(train_folder, 'digitStruct.mat')
@@ -80,7 +84,7 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 	
 	# Preprocess Training data and fetch labels
 	print("Generating data set and processing data.")
-	train_dataset, train_labels = generate_dataset(train_data, train_folder)
+	train_dataset, train_labels = generate_dataset(train_data, train_folder, single)
 
 	if display != "":
 		print("Displaying examples of preprocessed images")
@@ -97,6 +101,19 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 		del labels
 	del train_data
 
+	train_dataset, train_labels, valid_dataset, valid_labels = split(train_dataset,
+																	 train_labels,
+																	 400 * data_points)
+	np.save("temp_train_dataset1", train_dataset)
+	np.save("temp_train_labels1", train_labels)
+	np.save("temp_valid_dataset1", valid_dataset)
+	np.save("temp_valid_labels1", valid_labels)
+
+	del train_dataset
+	del train_labels
+	del valid_dataset
+	del valid_labels
+
 	#Repeat for Extra Data
 	fin = os.path.join(extra_folder, 'digitStruct.mat')
 	dsf = DigitStructFile(fin)
@@ -106,22 +123,89 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 
 	# Preprocess extra data and fetch labels
 	print("Generating data set and processing data.")
-	extra_dataset, extra_labels = generate_dataset(extra_data, extra_folder)
+	extra_dataset, extra_labels = generate_dataset(extra_data, extra_folder, single)
 
 	# Delete to free space
 	del extra_data
 
-	# Create the Training and Validation sets
-	print("Creating the Training and Validation sets")
-	train_dataset, train_labels, valid_dataset, valid_labels = split(train_dataset, 
-																	 train_labels,
-																	 extra_dataset,
-																	 extra_labels)
-	print("Finished creating the sets")
+	train_dataset, train_labels, valid_dataset, valid_labels = split(extra_dataset,
+																	 extra_labels,
+																	 200 * data_points)
+	np.save("temp_train_dataset2", train_dataset)
+	np.save("temp_train_labels2", train_labels)
+	np.save("temp_valid_dataset2", valid_dataset)
+	np.save("temp_valid_labels2", valid_labels)
+
+	del train_dataset
+	del train_labels
+	del valid_dataset
+	del valid_labels
 
 	# Delete to free space
 	del extra_dataset
 	del extra_labels
+
+	# Create the Training and Validation sets
+	print("Creating the Training and Validation sets")
+	td1 = np.load("temp_train_dataset1.npy")
+	td2 = np.load("temp_train_dataset2.npy")
+	train_dataset = np.concatenate((td1, td2), axis=0)
+	del td1
+	del td2
+	print(train_dataset.shape)
+	mean = np.mean(train_dataset)
+	std = np.std(train_dataset)
+
+	print("Train")
+	print(mean)
+	print(std)
+	Analytics.load()
+	Analytics.mean = mean
+	Analytics.std = std
+	Analytics.data_set_size['train'] = train_dataset.shape[0]
+	Analytics.save()
+	
+	train_dataset = normalize(train_dataset, mean, std)
+	np.save("data/train_dataset", train_dataset)
+	del train_dataset
+
+	tl1 = np.load("temp_train_labels1.npy")
+	tl2 = np.load("temp_train_labels2.npy")
+	train_labels = np.concatenate((tl1, tl2), axis=0)
+	del tl1
+	del tl2
+	np.save("data/train_labels", train_labels)
+	del train_labels
+
+	vd1 = np.load("temp_valid_dataset1.npy")
+	vd2 = np.load("temp_valid_dataset2.npy")
+	valid_dataset = np.concatenate((vd1, vd2), axis=0)
+	del vd1
+	del vd2
+	valid_dataset = normalize(valid_dataset, mean, std)
+	np.save("data/valid_dataset", valid_dataset)
+	Analytics.load()
+	Analytics.data_set_size['valid'] = valid_dataset.shape[0]
+	Analytics.save()
+	print(valid_dataset.shape)
+	del valid_dataset
+
+	vl1 = np.load("temp_valid_labels1.npy")
+	vl2 = np.load("temp_valid_labels2.npy")
+	valid_labels = np.concatenate((vl1, vl2), axis=0)
+	del vl1
+	del vl2
+	np.save("data/valid_labels", valid_labels)
+	del valid_labels
+	print("Finished creating the sets")
+	#os.remove("temp_train_dataset1.npy")
+	#os.remove("temp_train_dataset2.npy")
+	#os.remove("temp_train_labels1.npy")
+	#os.remove("temp_train_labels2.npy")
+	#os.remove("temp_valid_dataset1.npy")
+	#os.remove("temp_valid_dataset2.npy")
+	#os.remove("temp_valid_labels1.npy")
+	#os.remove("temp_valid_labels2.npy")
 
 	# Create the Test data set
 	fin = os.path.join(test_folder, 'digitStruct.mat')
@@ -139,7 +223,11 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 
 	# Preprocess test data and fetch labels
 	print("Generating data set and processing data.")
-	test_dataset, test_labels = generate_dataset(test_data, test_folder)
+	test_dataset, test_labels = generate_dataset(test_data, test_folder, single)
+
+	test_dataset = normalize(test_dataset, mean, std)
+	np.save("data/test_dataset", test_dataset)
+	np.save("data/test_labels", test_labels)
 
 	# Delete to free space
 	del test_data
@@ -147,19 +235,19 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 	del dsf
 
 	#Save Data to files
-	save(
-			train_dataset,
-			train_labels,
-			valid_dataset,
-			valid_labels,
-			test_dataset,
-			test_labels
-		)
+	# save(
+	# 		train_dataset,
+	# 		train_labels,
+	# 		valid_dataset,
+	# 		valid_labels,
+	# 		test_dataset,
+	# 		test_labels
+	# 	)
 
-	del train_dataset
-	del train_labels
-	del valid_dataset
-	del valid_labels
+	#del train_dataset
+	#del train_labels
+	#del valid_dataset
+	#del valid_labels
 	del test_dataset
 	del test_labels
 	
@@ -171,7 +259,7 @@ def process_and_visualize(train_folder="train", test_folder="test", extra_folder
 def example_plot(net):
 	plt.rcParams['figure.figsize'] = (20.0, 20.0)
 	f, ax = plt.subplots(nrows=1, ncols=5)
-	model_input, model_labels = generate_dataset(Analytics.test_samples, 'test')
+	model_input, model_labels = generate_dataset(Analytics.test_samples, 'test', example=True)
 	predictions = net.predict(model_input, False)
 	for i, r in enumerate(Analytics.test_samples):
 		im = load_example(r, 'test')
@@ -262,19 +350,19 @@ def get_user_input(prompt, error):
 	return user_input
 
 def main():
-	Analytics.load()
+	#Analytics.load()
 	#Analytics.save()
 	if not(
-		os.path.exists("train_dataset.npy") or
-		os.path.exists("train_labels.npy") or
-		os.path.exists("valid_dataset.npy") or
-		os.path.exists("valid_labels.npy") or
-		os.path.exists("test_dataset.npy") or
-		os.path.exists("test_labels.npy")
+		os.path.exists("data/train_dataset.npy") or
+		os.path.exists("data/train_labels.npy") or
+		os.path.exists("data/valid_dataset.npy") or
+		os.path.exists("data/valid_labels.npy") or
+		os.path.exists("data/test_dataset.npy") or
+		os.path.exists("data/test_labels.npy")
 		):
 		print("Data does not exist, downloading now.")
-		tr, t, e = download_data()
-		train_folder, test_folder, extra_folder = extract_data(tr, t, e)
+		#tr, t, e = download_data()
+		#train_folder, test_folder, extra_folder = extract_data(tr, t, e)
 
 	# create my network object and the Tensorflow graph for it
 	net = Network.Network()

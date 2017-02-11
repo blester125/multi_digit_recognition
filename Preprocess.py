@@ -42,29 +42,41 @@ def grayscale(img):
 	img = np.dot(img, [[0.2989],[0.5870],[0.1140]])
 	return img
 
-def resize(img):
-	img = imresize(img, (50,50))
+def resize(img, size=64):
+	img = imresize(img, (size, size))
 	return img
 
 def crop(im, top, left, width, height):
+	top = int(top)
+	left = int(left)
+	width = int(width)
+	height = int(height)
 	if top < 0:
 		top = 0
 	if left < 0:
 		left = 0
-	crop_im = im[top:top+height, left:(left+width)]
+	crop_im = im[top:int(top+height), left:int(left+width)]
 	return crop_im
 
 
-def normalize(dataset):
+def normalize(dataset, in_mean=None, in_std=None):
 	mean = np.mean(dataset)
 	std = np.std(dataset)
 	if std < 1e-4:
 		std = 1
-	dataset -= mean
-	dataset /= std
+	if in_mean is None:
+		dataset -= mean
+	else:
+		dataset -= in_mean
+	if in_std is None:
+		dataset /= std
+	else:
+		dataset /= in_std
 	return dataset
 
-def preprocess_image(digitStruct, dataset=""):
+def preprocess_image(digitStruct, dataset="", single=False):
+	processed_images = []
+
 	filename = os.path.join(dataset, digitStruct['filename'])
 	im = mpimg.imread(filename)
 
@@ -77,11 +89,32 @@ def preprocess_image(digitStruct, dataset=""):
 	Analytics.save()
 
 	t, l, w, h = find_bounding_box(digitStruct)
-	t, l, w, h = scale(t, l, w, h)
-	cropped = crop(im, t, l, w, h)
-	resized = resize(cropped)
-	gray = grayscale(resized)
-	return gray
+	t30, l30, w30, h30 = scale(t, l, w, h)
+	w_prime = w + ((w30 - w) / 2)
+	h_prime = h + ((h30 - h) / 2)
+
+	cropped = crop(im, t30, l30, w30, h30)
+	processed_images.append(cropped)
+
+	if single == False:
+		cropped = crop(im, t30, l30, w_prime, h_prime)
+		processed_images.append(cropped)
+
+		cropped = crop(im, t30, l, w_prime, h_prime)
+		processed_images.append(cropped)
+
+		cropped = crop(im, t, l30, w_prime, h_prime)
+		processed_images.append(cropped)
+
+		cropped = crop(im, t, l, w_prime, h_prime)
+		processed_images.append(cropped)
+
+	for i in range(len(processed_images)):
+		processed_images[i] = resize(processed_images[i])
+		processed_images[i] = grayscale(processed_images[i])
+		#Visualize.display_processed_example(processed_images[i])
+
+	return processed_images
 
 def preprocess_camera(image, t, l, w, h):
 	cropped = crop(image, t, l, w, h)

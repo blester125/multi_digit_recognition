@@ -3,16 +3,16 @@ from __future__ import print_function
 from __future__ import division
 
 import numpy as np
-from six.moves import cPickle as pickle
+import cPickle as pickle
 
-data_set_size = {'train': 0, 'valid': 0, 'test': 0}
-sequence_lengths = {'train': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
-					'extra': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
-					'test' : {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}}
-max_height = {'train': 0, 'extra': 0, 'test': 0}
-max_width = {'train': 0, 'extra': 0, 'test': 0}
-means = {'train': 0., 'test': 0., 'extra': 0.}
-stds = {'train': 0., 'test': 0., 'extra': 0.}
+data_set_size = {'data/train': 0, 'data/valid': 0, 'data/test': 0}
+sequence_lengths = {'data/train': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
+					'data/extra': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
+					'data/test' : {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}}
+max_height = {'data/train': 0, 'data/extra': 0, 'data/test': 0}
+max_width = {'data/train': 0, 'data/extra': 0, 'data/test': 0}
+mean = 0
+std = 0
 train_samples = []
 test_samples = []
 NUM_LABELS = 10
@@ -33,8 +33,8 @@ def save():
 		"max_width": max_width,
 		"train_samples": train_samples,
 		"test_samples": test_samples,
-		"means": means,
-		"stds": stds,
+		"mean": mean,
+		"std": std,
 		"train_time": train_time,
 		"train_accuracy": train_accuracy,
 		"valid_accuracy": valid_accuracy,
@@ -50,8 +50,8 @@ def load():
 	global max_width
 	global train_samples
 	global test_samples
-	global means
-	global stds
+	global mean
+	global std
 	global train_time
 	global train_accuracy
 	global valid_accuracy
@@ -70,8 +70,8 @@ def load():
 	train_time = saved["train_time"]
 	train_samples = saved["train_samples"]
 	test_samples = saved["test_samples"]
-	means = saved["means"]
-	stds = saved["stds"]
+	mean = saved["mean"]
+	std = saved["std"]
 	train_accuracy = saved["train_accuracy"]
 	valid_accuracy = saved["valid_accuracy"]
 	test_accuracy = saved["test_accuracy"]
@@ -89,20 +89,16 @@ def display():
 			print(str(length) + ": " + str(sequence_lengths[dataset][length]))
 	print("Max Height of an image: " + str(get_max_height()))
 	print("Max Width of an image: " + str(get_max_width()))
-	print("Max Height of training: " + str(max_height["train"]))
-	print("Max Height of extra: " + str(max_height["extra"]))
-	print("Max Height of test: " + str(max_height["test"]))
-	print("Max width of training: " + str(max_width["train"]))
-	print("Max width of extra: " + str(max_width["extra"]))
-	print("Max width of test: " + str(max_width["test"]))
+	print("Max Height of training: " + str(max_height["data/train"]))
+	print("Max Height of extra: " + str(max_height["data/extra"]))
+	print("Max Height of test: " + str(max_height["data/test"]))
+	print("Max width of training: " + str(max_width["data/train"]))
+	print("Max width of extra: " + str(max_width["data/extra"]))
+	print("Max width of test: " + str(max_width["data/test"]))
 	print("Mean pixel values of the images:")
-	print("Training:", means['train'])
-	print("Extra:", means['extra'])
-	print("Test:", means['test'])
+	print(mean)
 	print("Standard Devation of pixel values:")
-	print("Training:", stds['train'])
-	print("Extra:", stds['extra'])
-	print("Test:", stds['test'])
+	print(std)
 	# from Visualize import display_example
 	# for t in train_samples:
 	# 	display_example(t, 'train')

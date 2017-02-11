@@ -14,3 +14,8 @@ Capstone_Brian_Lester/*
 Capstone_Brian_Lester.zip
 spike/*
 5images/*
+data/*
+checkpoint
+model.ckpt.meta
+model.ckpt
+data

@@ -92,7 +92,7 @@ class Network():
 							feed_dict=feed_dict)
 
 				if (step % 500 == 0): 
-					print("Minibatch loss at step %d: %f, %f" % (step, l, l2))
+					print("Minibatch loss at step %d: %f" % (step, l))
 					train_pred = self.prediction.eval(
 										feed_dict={
 											self.x: batch_data, 
@@ -115,15 +115,16 @@ class Network():
 					print("Validation accuracy: %.1f%%" % valid_acc)
 					save_path = self.saver.save(self.sess, self.savepath)
 					self.writer.add_summary(summary, step)
-			# Graph of accuracies		
-			plt.plot(
-				[x[0] for x in self.train_accs], 
-				[y[1] for y in self.train_accs],
-				'b',
-				[a[0] for a in self.valid_accs], 
-				[b[1] for b in self.valid_accs],
-				'r')
-			plt.title("Training and Validation Accuracy")
+					# Graph of accuracies		
+					plt.plot(
+						[x[0] for x in self.train_accs], 
+						[y[1] for y in self.train_accs],
+						'b',
+						[a[0] for a in self.valid_accs], 
+						[b[1] for b in self.valid_accs],
+						'r')
+					plt.title("Training and Validation Accuracy")
+					plt.show(block=False)
 
 			test_pred = self.prediction.eval(
 								feed_dict={
@@ -469,26 +470,15 @@ def inference(images, keep_prob):
 
 		return [logits1, logits2, logits3, logits4, logits5, logits6]
 
-# def loss(logits, labels):
-# 	loss_per_digit = [tf.reduce_mean(
-# 							tf.nn.sparse_softmax_cross_entropy_with_logits(
-# 							logits[i],
-# 							labels[:,i]
-# 						))
-# 						for i in range(NUM_LOGITS)]
-# 	loss_value = tf.add_n(loss_per_digit)
-# 	tf.scalar_summary('loss', loss_value)
-# 	return loss_value
-	
 def loss(logits, labels):
-	with tf.variable_scope('loss') as scope:
-		loss_value = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[0], labels[:,0])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[1], labels[:,1])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[2], labels[:,2])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[3], labels[:,3])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[4], labels[:,4])) +\
-					 tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits[5], labels[:,5]))
-	tf.scalar_summary('loss', loss_value)				 
+	loss_per_digit = [tf.reduce_mean(
+							tf.nn.sparse_softmax_cross_entropy_with_logits(
+							logits[i],
+							labels[:,i]
+						))
+						for i in range(NUM_LOGITS)]
+	loss_value = tf.add_n(loss_per_digit)
+	tf.scalar_summary('loss', loss_value)
 	return loss_value
 
 def train(total_loss):

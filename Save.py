@@ -16,12 +16,12 @@ def save(train_d, train_l, valid_d, valid_l, test_d, test_l):
 	np.save('test_labels', test_l)
 
 def load():
-	train_d = np.load('train_dataset.npy')
-	train_l = np.load('train_labels.npy')
-	valid_d = np.load('valid_dataset.npy')
-	valid_l = np.load('valid_labels.npy')
-	test_d = np.load('test_dataset.npy')
-	test_l = np.load('test_labels.npy')
+	train_d = np.load('data/train_dataset1.npy')
+	train_l = np.load('data/train_labels1.npy')
+	valid_d = np.load('data/valid_dataset1.npy')
+	valid_l = np.load('data/valid_labels1.npy')
+	test_d = np.load('data/test_dataset1.npy')
+	test_l = np.load('data/test_labels1.npy')
 	print("Train set:", train_d.shape, train_l.shape)
 	print("Valid set:", valid_d.shape, valid_l.shape)
 	print("Test  set:", test_d.shape, test_l.shape)

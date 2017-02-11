@@ -17,12 +17,13 @@ NUM_LABELS = 11
 NUM_LENGTHS = 7
 NUM_CHANNELS = 1
 NUM_LOGITS = 6
-IMAGE_SIZE = 50
+IMAGE_SIZE = 64
 DEPTH1 = 16
 DEPTH2 = 32
 DEPTH3 = 64
 DEPTH4 = 128
-NUM_HIDDEN1 = 128
+DEPTH5 = 256
+NUM_HIDDEN1 = 256
 NUM_HIDDEN2 = 16
 NUM_STEPS = 100001
 
@@ -57,8 +58,10 @@ class Network():
 
 		self.saver = tf.train.Saver()
 		self.writer = tf.train.SummaryWriter(logdir, graph=self.sess.graph)
-
+		self.batch_size = BATCH_SIZE
 		self.sess.run(tf.initialize_all_variables())
+
+		self.graph = Graph(title="Accs", x_label="epoch", y_label="Acc")
 
 	def load(self):
 		self.saver.restore(self.sess, self.savepath)
@@ -77,55 +80,59 @@ class Network():
 		print("Training")
 		with self.sess.as_default():
 			start = time.time()
-			for step in range(self.num_steps):
-				offset = ((step * BATCH_SIZE) % 
-						  (self.train_labels.shape[0] - BATCH_SIZE))
-				batch_data = self.train_dataset[offset:(offset + BATCH_SIZE), :, :, :]
-				batch_labels = self.train_labels[offset:(offset + BATCH_SIZE),:]
-				feed_dict = {
-						self.x: batch_data, 
-						self.y: batch_labels, 
-						self.keep_prob: .9375
-					}
-				_, l, summary = self.sess.run(
-							[self.train_op, self.loss, self.summary_op], 
-							feed_dict=feed_dict)
+			for epoch in range(20):
+				offset = 0
+				#epoch_loss = 0
+				while offset < self.train_dataset.shape[0]:
+					X_batch, y_batch = load_minibatch(
+											self.train_dataset,
+											self.train_labels,
+											offset,
+											self.batch_size,
+										)
+					_, l, summary = self.sess.run(
+										[self.train_op,
+										 self.loss,
+										 self.summary_op],
+										 feed_dict = {
+										 	self.x: X_batch,
+										 	self.y: y_batch,
+										 	self.keep_prob: 0.5
+										 })
+					#epoch_loss += l * X_batch.get_shape().as_list()[0]
+					offset = offset = min(offset + self.batch_size, self.train_dataset.shape[0])
+				train_pred = self.prediction.eval(
+									feed_dict={
+										self.x: X_batch,
+										self.y: y_batch,
+										self.keep_prob: 1.0
+									})
 
-				if (step % 500 == 0): 
-					print("Minibatch loss at step %d: %f" % (step, l))
-					train_pred = self.prediction.eval(
-										feed_dict={
-											self.x: batch_data, 
-											self.y: batch_labels, 
-											self.keep_prob: 1.0
-										}
-								)
-					train_acc = accuracy(train_pred, batch_labels[:,1:6])
-					self.train_accs.append([step, train_acc])
-					print("Minibatch accuracy: %.1f%%" % train_acc)
-					valid_pred = self.prediction.eval(
-										feed_dict={
-											self.x: self.valid_dataset, 
-											self.y: self.valid_labels, 
-											self.keep_prob: 1.0
-										}
-								)
-					valid_acc = accuracy(valid_pred, self.valid_labels[:,1:6])
-					self.valid_accs.append([step, valid_acc])
-					print("Validation accuracy: %.1f%%" % valid_acc)
-					save_path = self.saver.save(self.sess, self.savepath)
-					self.writer.add_summary(summary, step)
-					# Graph of accuracies		
-					plt.plot(
-						[x[0] for x in self.train_accs], 
-						[y[1] for y in self.train_accs],
-						'b',
-						[a[0] for a in self.valid_accs], 
-						[b[1] for b in self.valid_accs],
-						'r')
-					plt.title("Training and Validation Accuracy")
-					plt.show(block=False)
+				train_acc = accuracy(train_pred, y_batch[:,1:6])
+				print("Training Accuracy", train_acc)
+				self.train_accs.append([epoch, train_acc])
 
+			
+				valid_pred = self.prediction.eval(
+									feed_dict={
+										self.x: self.valid_dataset, 
+										self.y: self.valid_labels, 
+										self.keep_prob: 1.0
+									}
+							)
+				valid_acc = accuracy(valid_pred, self.valid_labels[:,1:6])
+				self.valid_accs.append([epoch, valid_acc])
+				print("Valididation Accuracy", valid_acc)
+
+				save_path = self.saver.save(self.sess, self.savepath)
+				self.writer.add_summary(summary, epoch)
+				
+				# Graph of accuracies		
+				self.graph.update([x[0] for x in self.train_accs], [y[1] for y in self.train_accs],"b", "Training")
+				self.graph.update([x[0] for x in self.valid_accs], [y[1] for y in self.valid_accs], "r", "Validation")
+				if epoch == 0:
+					self.graph.addLegend()
+			
 			test_pred = self.prediction.eval(
 								feed_dict={
 									self.x: self.test_dataset, 
@@ -162,6 +169,33 @@ class Network():
 
 	def set_num_steps(self, num):
 		self.num_steps = num
+
+class Graph():
+	def __init__(self, title="title", x_label="x", y_label="y"):
+		self.figure = plt.gcf()
+		self.figure.show()
+		self.figure.canvas.draw()
+		self.min = 0
+		self.max = 0
+		plt.title(title)
+		plt.xlabel(x_label)
+		plt.ylabel(y_label)
+
+	def update(self, a, b, color="b", label=""):
+		plt.plot(a, b, color, label=label)
+		plt.xlim(0, len(a))
+		self.min = min(self.min, min(b))
+		self.max = max(self.max, max(b))
+		plt.ylim(self.min, self.max)
+		self.figure.canvas.draw()
+
+	def addLegend(self):
+		plt.legend()
+
+def load_minibatch(X_train, y_train, offset, batch_size):
+	y_batch = np.array(y_train[offset:min(offset+batch_size, X_train.shape[0])])
+	X_batch = np.array(X_train[offset:min(offset+batch_size, X_train.shape[0])])
+	return X_batch, y_batch
 
 def accuracy(predictions, labels):
 	return (
@@ -213,7 +247,7 @@ def inference(images, keep_prob):
 		# First Layer
 		with tf.variable_scope('conv1') as scope:
 			weights = tf.get_variable(
-						shape=[3, 3, NUM_CHANNELS, DEPTH1],
+						shape=[5, 5, NUM_CHANNELS, DEPTH1],
 						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
 						name='weights')
 			biases = tf.get_variable(
@@ -226,12 +260,12 @@ def inference(images, keep_prob):
 			tf.image_summary('convultion1', conv1[:, :, :, 0:1], 5)
 		##
 		# images are size: [? x 48 x 48 x 16]
-
+		print(conv1.get_shape().as_list())
 		# Pooling
 		pool1 = max_pool_2x2(conv1, 1)
 		##
 		# images are size: [? x 24 x 24 x 16]
-
+		print(pool1.get_shape().as_list())
 		# Normialization
 		norm1 = normalize(pool1, 1)
 		# Dropout
@@ -254,14 +288,26 @@ def inference(images, keep_prob):
 			tf.image_summary('convultion2', conv2[:, :, :, 0:1], 5)
 		##
 		# images are size: [? x 24 x 24 x 32]
-
+		print(conv2.get_shape().as_list())
+		with tf.variable_scope('conv2_2') as scope:
+			weights = tf.get_variable(
+						shape=[3, 3, DEPTH2, DEPTH3],
+						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+						name='weights')
+			biases = tf.get_variable(
+						initializer=tf.constant(1.0, shape=[DEPTH3]),
+						name='biases')
+			conv = conv2d(conv2, weights)
+			bias = tf.nn.bias_add(conv, biases)
+			conv2 = tf.nn.relu(bias, name=scope.name)
+		print(conv2.get_shape().as_list())
 		# Normalization
 		norm2 = normalize(conv2, 2)
 		# Pooling
 		pool2 = max_pool_2x2(norm2, 2)
 		##
 		# images are size: [? x 12 x 12 x 32]
-
+		print(pool2.get_shape().as_list())
 		# Dropout
 		dropout2 = tf.nn.dropout(pool2, keep_prob, name='dropout2')
 
@@ -269,11 +315,11 @@ def inference(images, keep_prob):
 		# Thrid Layer
 		with tf.variable_scope('conv3') as scope:
 			weights = tf.get_variable(
-						shape=[5, 5, DEPTH2, DEPTH3],
+						shape=[3, 3, DEPTH3, DEPTH4],
 						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
 						name='weights')
 			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[DEPTH3]),
+						initializer=tf.constant(1.0, shape=[DEPTH4]),
 						name='biases')
 			conv = conv2d(dropout2, weights)
 			bias = tf.nn.bias_add(conv, biases)
@@ -282,12 +328,12 @@ def inference(images, keep_prob):
 			tf.image_summary('convultion3', conv3[:, :, :, 0:1], 5)
 		##
 		# images are size: [? x 8 x 8 x 64]
-
+		print(conv3.get_shape().as_list())
 		# Pooling
 		pool3 = max_pool_2x2(conv3, 3)
 		##
 		# images are size: [? x 4 x 4 x 64]
-
+		print(pool3.get_shape().as_list())
 		# Normalization
 		norm3 = normalize(pool3, 3)
 		# Dropout
@@ -297,11 +343,11 @@ def inference(images, keep_prob):
 		# Fourth Layer
 		with tf.variable_scope('conv4') as scope:
 			weights = tf.get_variable(
-						shape=[4, 4, DEPTH3, DEPTH4],
+						shape=[3, 3, DEPTH4, DEPTH5],
 						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
 						name='weights')
 			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[DEPTH4]),
+						initializer=tf.constant(1.0, shape=[DEPTH5]),
 						name='biases')
 			conv = conv2d(dropout3, weights)
 			bias = tf.nn.bias_add(conv, biases)
@@ -309,14 +355,18 @@ def inference(images, keep_prob):
 			conv4 = tf.nn.relu(bias, name=scope.name)
 		##
 		# images are size: [? x 1 x 1 x 128]
-
+		print(conv4.get_shape().as_list())
 		# Normalization
 		norm4 = normalize(conv4, 4)
 		# Dropout
 		norm4 = tf.nn.dropout(norm4, keep_prob, name='dropout4')
 
+		pool4 = max_pool_2x2(conv4, 4)
+		print(pool4.get_shape().as_list())
+		pool5 = max_pool_2x2(pool4, 5)
+		print(pool5.get_shape().as_list())
 		# Move everything into depth
-		reshape = tf.reshape(norm4, [-1, 128])
+		reshape = tf.reshape(pool5, [-1, 256])
 		##
 		# images are size: [? x 128]
 

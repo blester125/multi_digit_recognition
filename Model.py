@@ -262,304 +262,353 @@ def inference(images, keep_prob, phase_train):
 	flatten = tf.reshape(pool5, [-1, DEPTH5])
 	print(flatten.get_shape().as_list())
 
-	return flatten
+	hidden1 = Network.fully_connected(
+				flatten,
+				NUM_HIDDEN2,
+				name="hidden1")
+	hidden2 = Network.fully_connected(
+				flatten,
+				NUM_HIDDEN2,
+				name="hidden2")
+	hidden3 = Network.fully_connected(
+				flatten,
+				NUM_HIDDEN2,
+				name="hidden3")
+	hidden4 = Network.fully_connected(
+				flatten,
+				NUM_HIDDEN2,
+				name="hidden4")
+	hidden5 = Network.fully_connected(
+				flatten,
+				NUM_HIDDEN2,
+				name="hidden5")
+	hidden6 = Network.fully_connected(
+				flatten,
+				NUM_HIDDEN2,
+				name="hidden6")
+	logit1 = Network.softmax(
+				hidden1,
+				NUM_LENGTHS,
+				name="logit1")
+	logit2 = Network.softmax(
+				hidden2,
+				NUM_LABELS,
+				name="logit2")
+	logit3 = Network.softmax(
+				hidden3,
+				NUM_LABELS,
+				name="logit3")
+	logit4 = Network.softmax(
+				hidden4,
+				NUM_LABELS,
+				name="logit4")
+	logit5 = Network.softmax(
+				hidden5,
+				NUM_LABELS,
+				name="logit5")
+	logit6 = Network.softmax(
+				hidden6,
+				NUM_LABELS,
+				name="logit6")
+	return [logit1, logit2, logit3, logit4, logit5, logit6]
+	
 
-def inference(images, keep_prob):
-	tf.image_summary('input', images, 5)
+# def inference(images, keep_prob):
+# 	tf.image_summary('input', images, 5)
 
-	with tf.variable_scope('model') as scope:
-		##
-		# images are size: [? x 64 x 64 x 1]
+# 	with tf.variable_scope('model') as scope:
+# 		##
+# 		# images are size: [? x 64 x 64 x 1]
 		
-		##
-		# Convolutions
-		# First Layer
-		with tf.variable_scope('conv1') as scope:
-			weights = tf.get_variable(
-						shape=[5, 5, NUM_CHANNELS, DEPTH1],
-						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[DEPTH1]), 
-						name='biases')
-			conv = conv2d(images, weights)
-			bias = tf.nn.bias_add(conv, biases)
-			conv1 = tf.nn.relu(bias, name=scope.name)
-			tf.histogram_summary("conv_1_weights", weights)
-			tf.image_summary('convultion1', conv1[:, :, :, 0:1], 5)
-		##
-		# images are size: [? x 60 x 60 x 16]
-		print(conv1.get_shape().as_list())
-		# Pooling
-		pool1 = max_pool_2x2(conv1, 1)
-		##
-		# images are size: [? x 30 x 30 x 16]
-		print(pool1.get_shape().as_list())
-		# Normialization
-		norm1 = normalize(pool1, 1)
-		# Dropout
-		dropout1 = tf.nn.dropout(norm1, keep_prob, name='dropout1')
+# 		##
+# 		# Convolutions
+# 		# First Layer
+# 		with tf.variable_scope('conv1') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[5, 5, NUM_CHANNELS, DEPTH1],
+# 						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[DEPTH1]), 
+# 						name='biases')
+# 			conv = conv2d(images, weights)
+# 			bias = tf.nn.bias_add(conv, biases)
+# 			conv1 = tf.nn.relu(bias, name=scope.name)
+# 			tf.histogram_summary("conv_1_weights", weights)
+# 			tf.image_summary('convultion1', conv1[:, :, :, 0:1], 5)
+# 		##
+# 		# images are size: [? x 60 x 60 x 16]
+# 		print(conv1.get_shape().as_list())
+# 		# Pooling
+# 		pool1 = max_pool_2x2(conv1, 1)
+# 		##
+# 		# images are size: [? x 30 x 30 x 16]
+# 		print(pool1.get_shape().as_list())
+# 		# Normialization
+# 		norm1 = normalize(pool1, 1)
+# 		# Dropout
+# 		dropout1 = tf.nn.dropout(norm1, keep_prob, name='dropout1')
 
 
-		# Second Layer
-		with tf.variable_scope('conv2') as scope:
-			weights = tf.get_variable(
-						shape=[1, 1, DEPTH1, DEPTH2],
-						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[DEPTH2]),
-						name='biases')
-			conv = conv2d(dropout1, weights)
-			bias = tf.nn.bias_add(conv, biases)
-			conv2 = tf.nn.relu(bias, name=scope.name)
-			tf.histogram_summary("conv_2_weights", weights)
-			tf.image_summary('convultion2', conv2[:, :, :, 0:1], 5)
-		##
-		# images are size: [? x 30 x 30 x 32]
-		print(conv2.get_shape().as_list())
-		with tf.variable_scope('conv2_2') as scope:
-			weights = tf.get_variable(
-						shape=[3, 3, DEPTH2, DEPTH3],
-						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[DEPTH3]),
-						name='biases')
-			conv = conv2d(conv2, weights)
-			bias = tf.nn.bias_add(conv, biases)
-			conv2 = tf.nn.relu(bias, name=scope.name)
-		##
-		# images are size: [? x 28 x 28 x 64]
-		print(conv2.get_shape().as_list())
-		# Normalization
-		norm2 = normalize(conv2, 2)
-		# Pooling
-		pool2 = max_pool_2x2(norm2, 2)
-		##
-		# images are size: [? x 14 x 14 x 64]
-		print(pool2.get_shape().as_list())
-		# Dropout
-		dropout2 = tf.nn.dropout(pool2, keep_prob, name='dropout2')
+# 		# Second Layer
+# 		with tf.variable_scope('conv2') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[1, 1, DEPTH1, DEPTH2],
+# 						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[DEPTH2]),
+# 						name='biases')
+# 			conv = conv2d(dropout1, weights)
+# 			bias = tf.nn.bias_add(conv, biases)
+# 			conv2 = tf.nn.relu(bias, name=scope.name)
+# 			tf.histogram_summary("conv_2_weights", weights)
+# 			tf.image_summary('convultion2', conv2[:, :, :, 0:1], 5)
+# 		##
+# 		# images are size: [? x 30 x 30 x 32]
+# 		print(conv2.get_shape().as_list())
+# 		with tf.variable_scope('conv2_2') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[3, 3, DEPTH2, DEPTH3],
+# 						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[DEPTH3]),
+# 						name='biases')
+# 			conv = conv2d(conv2, weights)
+# 			bias = tf.nn.bias_add(conv, biases)
+# 			conv2 = tf.nn.relu(bias, name=scope.name)
+# 		##
+# 		# images are size: [? x 28 x 28 x 64]
+# 		print(conv2.get_shape().as_list())
+# 		# Normalization
+# 		norm2 = normalize(conv2, 2)
+# 		# Pooling
+# 		pool2 = max_pool_2x2(norm2, 2)
+# 		##
+# 		# images are size: [? x 14 x 14 x 64]
+# 		print(pool2.get_shape().as_list())
+# 		# Dropout
+# 		dropout2 = tf.nn.dropout(pool2, keep_prob, name='dropout2')
 
 
-		# Thrid Layer
-		with tf.variable_scope('conv3') as scope:
-			weights = tf.get_variable(
-						shape=[3, 3, DEPTH3, DEPTH4],
-						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[DEPTH4]),
-						name='biases')
-			conv = conv2d(dropout2, weights)
-			bias = tf.nn.bias_add(conv, biases)
-			conv3 = tf.nn.relu(bias, name=scope.name)
-			tf.histogram_summary("conv_3_weights", weights)
-			tf.image_summary('convultion3', conv3[:, :, :, 0:1], 5)
-		##
-		# images are size: [? x 12 x 12 x 128]
-		print(conv3.get_shape().as_list())
-		# Pooling
-		pool3 = max_pool_2x2(conv3, 3)
-		##
-		# images are size: [? x 6 x 6 x 128]
-		print(pool3.get_shape().as_list())
-		# Normalization
-		norm3 = normalize(pool3, 3)
-		# Dropout
-		dropout3 = tf.nn.dropout(norm3, keep_prob, name='dropout3')
+# 		# Thrid Layer
+# 		with tf.variable_scope('conv3') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[3, 3, DEPTH3, DEPTH4],
+# 						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[DEPTH4]),
+# 						name='biases')
+# 			conv = conv2d(dropout2, weights)
+# 			bias = tf.nn.bias_add(conv, biases)
+# 			conv3 = tf.nn.relu(bias, name=scope.name)
+# 			tf.histogram_summary("conv_3_weights", weights)
+# 			tf.image_summary('convultion3', conv3[:, :, :, 0:1], 5)
+# 		##
+# 		# images are size: [? x 12 x 12 x 128]
+# 		print(conv3.get_shape().as_list())
+# 		# Pooling
+# 		pool3 = max_pool_2x2(conv3, 3)
+# 		##
+# 		# images are size: [? x 6 x 6 x 128]
+# 		print(pool3.get_shape().as_list())
+# 		# Normalization
+# 		norm3 = normalize(pool3, 3)
+# 		# Dropout
+# 		dropout3 = tf.nn.dropout(norm3, keep_prob, name='dropout3')
 
 
-		# Fourth Layer
-		with tf.variable_scope('conv4') as scope:
-			weights = tf.get_variable(
-						shape=[3, 3, DEPTH4, DEPTH5],
-						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[DEPTH5]),
-						name='biases')
-			conv = conv2d(dropout3, weights)
-			bias = tf.nn.bias_add(conv, biases)
-			tf.histogram_summary("conv_4_weights", weights)
-			conv4 = tf.nn.relu(bias, name=scope.name)
-		##
-		# images are size: [? x 4 x 4 x 256]
-		print(conv4.get_shape().as_list())
-		# Normalization
-		norm4 = normalize(conv4, 4)
-		# Dropout
-		norm4 = tf.nn.dropout(norm4, keep_prob, name='dropout4')
+# 		# Fourth Layer
+# 		with tf.variable_scope('conv4') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[3, 3, DEPTH4, DEPTH5],
+# 						initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[DEPTH5]),
+# 						name='biases')
+# 			conv = conv2d(dropout3, weights)
+# 			bias = tf.nn.bias_add(conv, biases)
+# 			tf.histogram_summary("conv_4_weights", weights)
+# 			conv4 = tf.nn.relu(bias, name=scope.name)
+# 		##
+# 		# images are size: [? x 4 x 4 x 256]
+# 		print(conv4.get_shape().as_list())
+# 		# Normalization
+# 		norm4 = normalize(conv4, 4)
+# 		# Dropout
+# 		norm4 = tf.nn.dropout(norm4, keep_prob, name='dropout4')
 
-		pool4 = max_pool_2x2(conv4, 4)
-		##
-		# images are size [? x 2 x 2 x 256]
-		print(pool4.get_shape().as_list())
-		pool5 = max_pool_2x2(pool4, 5)
-		##
-		# images are size [? x 1 x 1 x 256]
-		print(pool5.get_shape().as_list())
-		# Move everything into depth
-		reshape = tf.reshape(pool5, [-1, DEPTH5])
-		##
-		# images are size: [? x 256]
+# 		pool4 = max_pool_2x2(conv4, 4)
+# 		##
+# 		# images are size [? x 2 x 2 x 256]
+# 		print(pool4.get_shape().as_list())
+# 		pool5 = max_pool_2x2(pool4, 5)
+# 		##
+# 		# images are size [? x 1 x 1 x 256]
+# 		print(pool5.get_shape().as_list())
+# 		# Move everything into depth
+# 		reshape = tf.reshape(pool5, [-1, DEPTH5])
+# 		##
+# 		# images are size: [? x 256]
 
-		##
-		# Hidden Layers
-		with tf.variable_scope('hidden1') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
-						name='biases')
-			activation = tf.matmul(reshape, weights) + biases
-			hidden1 = tf.nn.relu(activation, name=scope.name)
-			tf.histogram_summary("hidden_1_weights", weights)
-			hidden1 = tf.nn.dropout(hidden1, keep_prob, name='dropout')
+# 		##
+# 		# Hidden Layers
+# 		with tf.variable_scope('hidden1') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
+# 						name='biases')
+# 			activation = tf.matmul(reshape, weights) + biases
+# 			hidden1 = tf.nn.relu(activation, name=scope.name)
+# 			tf.histogram_summary("hidden_1_weights", weights)
+# 			hidden1 = tf.nn.dropout(hidden1, keep_prob, name='dropout')
 
-		with tf.variable_scope('hidden2') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
-						name='biases')
-			activation = tf.matmul(reshape, weights) + biases
-			hidden2 = tf.nn.relu(activation, name=scope.name)
-			tf.histogram_summary("hidden_2_weights", weights)
-			hidden2 = tf.nn.dropout(hidden2, keep_prob, name='dropout')
+# 		with tf.variable_scope('hidden2') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
+# 						name='biases')
+# 			activation = tf.matmul(reshape, weights) + biases
+# 			hidden2 = tf.nn.relu(activation, name=scope.name)
+# 			tf.histogram_summary("hidden_2_weights", weights)
+# 			hidden2 = tf.nn.dropout(hidden2, keep_prob, name='dropout')
 
-		with tf.variable_scope('hidden3') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
-						name='biases')
-			activation = tf.matmul(reshape, weights) + biases
-			hidden3 = tf.nn.relu(activation, name=scope.name)
-			tf.histogram_summary("hidden_3_weights", weights)
-			hidden3 = tf.nn.dropout(hidden3, keep_prob, name='dropout')
+# 		with tf.variable_scope('hidden3') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
+# 						name='biases')
+# 			activation = tf.matmul(reshape, weights) + biases
+# 			hidden3 = tf.nn.relu(activation, name=scope.name)
+# 			tf.histogram_summary("hidden_3_weights", weights)
+# 			hidden3 = tf.nn.dropout(hidden3, keep_prob, name='dropout')
 
-		with tf.variable_scope('hidden4') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
-						name='biases')
-			activation = tf.matmul(reshape, weights) + biases
-			hidden4 = tf.nn.relu(activation, name=scope.name)
-			tf.histogram_summary("hidden_4_weights", weights)
-			hidden4 = tf.nn.dropout(hidden4, keep_prob, name='dropout')
+# 		with tf.variable_scope('hidden4') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
+# 						name='biases')
+# 			activation = tf.matmul(reshape, weights) + biases
+# 			hidden4 = tf.nn.relu(activation, name=scope.name)
+# 			tf.histogram_summary("hidden_4_weights", weights)
+# 			hidden4 = tf.nn.dropout(hidden4, keep_prob, name='dropout')
 
-		with tf.variable_scope('hidden5') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
-						name='biases')
-			activation = tf.matmul(reshape, weights) + biases
-			hidden5 = tf.nn.relu(activation, name=scope.name)
-			tf.histogram_summary("hidden_5_weights", weights)
-			hidden5 = tf.nn.dropout(hidden5, keep_prob, name='dropout')
+# 		with tf.variable_scope('hidden5') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
+# 						name='biases')
+# 			activation = tf.matmul(reshape, weights) + biases
+# 			hidden5 = tf.nn.relu(activation, name=scope.name)
+# 			tf.histogram_summary("hidden_5_weights", weights)
+# 			hidden5 = tf.nn.dropout(hidden5, keep_prob, name='dropout')
 
-		with tf.variable_scope('hidden6') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
-						name='biases')
-			activation = tf.matmul(reshape, weights) + biases
-			hidden6 = tf.nn.relu(activation, name=scope.name)
-			tf.histogram_summary("hidden_6_weights", weights)
-			hidden6 = tf.nn.dropout(hidden6, keep_prob, name='dropout')
+# 		with tf.variable_scope('hidden6') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN1, NUM_HIDDEN2],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_HIDDEN2]),
+# 						name='biases')
+# 			activation = tf.matmul(reshape, weights) + biases
+# 			hidden6 = tf.nn.relu(activation, name=scope.name)
+# 			tf.histogram_summary("hidden_6_weights", weights)
+# 			hidden6 = tf.nn.dropout(hidden6, keep_prob, name='dropout')
 
-		## insert second hidden layer? NUM_HIDDEN1 = 256
-		#                              NUM_HIDDEN2 = 128
-		#                              NUM_HIDDEN3 = 16
-		#                              NUM_LENGHTS = 6
-		#                              NUM_LABELS = 11
+# 		## insert second hidden layer? NUM_HIDDEN1 = 256
+# 		#                              NUM_HIDDEN2 = 128
+# 		#                              NUM_HIDDEN3 = 16
+# 		#                              NUM_LENGTHS = 6
+# 		#                              NUM_LABELS = 11
 
-		##
-		# Logits layers
-		with tf.variable_scope('logits1') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN2, NUM_LENGTHS],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_LENGTHS]),
-						name='biases')
-			tf.histogram_summary("logits_1_weights", weights)
-			logits1 = tf.matmul(hidden1, weights) + biases
+# 		##
+# 		# Logits layers
+# 		with tf.variable_scope('logits1') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN2, NUM_LENGTHS],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_LENGTHS]),
+# 						name='biases')
+# 			tf.histogram_summary("logits_1_weights", weights)
+# 			logits1 = tf.matmul(hidden1, weights) + biases
 
-		with tf.variable_scope('logits2') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN2, NUM_LABELS],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
-						name='biases')
-			tf.histogram_summary("logits_2_weights", weights)
-			logits2 = tf.matmul(hidden2, weights) + biases
+# 		with tf.variable_scope('logits2') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN2, NUM_LABELS],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
+# 						name='biases')
+# 			tf.histogram_summary("logits_2_weights", weights)
+# 			logits2 = tf.matmul(hidden2, weights) + biases
 
-		with tf.variable_scope('logits3') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN2, NUM_LABELS],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
-						name='biases')
-			tf.histogram_summary("logits_3_weights", weights)
-			logits3 = tf.matmul(hidden3, weights) + biases
+# 		with tf.variable_scope('logits3') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN2, NUM_LABELS],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
+# 						name='biases')
+# 			tf.histogram_summary("logits_3_weights", weights)
+# 			logits3 = tf.matmul(hidden3, weights) + biases
 
-		with tf.variable_scope('logits4') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN2, NUM_LABELS],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
-						name='biases')
-			tf.histogram_summary("logits_4_weights", weights)
-			logits4 = tf.matmul(hidden4, weights) + biases
+# 		with tf.variable_scope('logits4') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN2, NUM_LABELS],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
+# 						name='biases')
+# 			tf.histogram_summary("logits_4_weights", weights)
+# 			logits4 = tf.matmul(hidden4, weights) + biases
 
-		with tf.variable_scope('logits5') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN2, NUM_LABELS],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
-						name='biases')
-			tf.histogram_summary("logits_5_weights", weights)
-			logits5 = tf.matmul(hidden5, weights) + biases
+# 		with tf.variable_scope('logits5') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN2, NUM_LABELS],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
+# 						name='biases')
+# 			tf.histogram_summary("logits_5_weights", weights)
+# 			logits5 = tf.matmul(hidden5, weights) + biases
 
-		with tf.variable_scope('logits6') as scope:
-			weights = tf.get_variable(
-						shape=[NUM_HIDDEN2, NUM_LABELS],
-						initializer=tf.contrib.layers.xavier_initializer(),
-						name='weights')
-			biases = tf.get_variable(
-						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
-						name='biases')
-			tf.histogram_summary("logits_6_weights", weights)
-			logits6 = tf.matmul(hidden6, weights) + biases
+# 		with tf.variable_scope('logits6') as scope:
+# 			weights = tf.get_variable(
+# 						shape=[NUM_HIDDEN2, NUM_LABELS],
+# 						initializer=tf.contrib.layers.xavier_initializer(),
+# 						name='weights')
+# 			biases = tf.get_variable(
+# 						initializer=tf.constant(1.0, shape=[NUM_LABELS]),
+# 						name='biases')
+# 			tf.histogram_summary("logits_6_weights", weights)
+# 			logits6 = tf.matmul(hidden6, weights) + biases
 
-		return [logits1, logits2, logits3, logits4, logits5, logits6]
+# 		return [logits1, logits2, logits3, logits4, logits5, logits6]
 
 def loss(logits, labels):
 	loss_per_digit = [tf.reduce_mean(
@@ -594,5 +643,5 @@ def display_prediction(prediction):
 
 if __name__ == "__main__":
 	model = Model()
-	model.load_data(1)
+	#model.load_data(1)
 	model.do_training()

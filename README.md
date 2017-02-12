@@ -1,6 +1,8 @@
 # Deep Learning for Image Processing
 ##
 
+![Example Output](latex/images/example_output.png)
+
 This project detects multidigit sequences in natural scenes.
 The dataset for this project can be found at 
 http://ufldl.stanford.edu/housenumbers/

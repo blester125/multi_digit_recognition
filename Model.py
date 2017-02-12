@@ -13,6 +13,7 @@ from Graph import Graph
 
 from Network import load_minibatch
 
+import Network
 import Analytics
 
 BATCH_SIZE = 64
@@ -47,8 +48,9 @@ class Model():
 					shape=[None, NUM_LOGITS], 
 					name="y")
 		self.keep_prob = tf.placeholder(tf.float32, name="keep_prob")
+		self.phase_train = tf.placeholder(tf.bool, name="phase_train")
 
-		self.logits = inference(self.x, self.keep_prob)
+		self.logits = inference(self.x, self.keep_prob, self.phase_train)
 		self.loss = loss(self.logits, self.y)
 		self.train_op = train(self.loss)
 		self.prediction = prediction(self.logits)
@@ -96,7 +98,8 @@ class Model():
 										 feed_dict = {
 										 	self.x: X_batch,
 										 	self.y: y_batch,
-										 	self.keep_prob: 0.5
+										 	self.keep_prob: 0.5,
+										 	self.phase_train: True
 										 })
 					#epoch_loss += l * X_batch.get_shape().as_list()[0]
 					offset = offset = min(offset + self.batch_size, self.train_dataset.shape[0])
@@ -104,7 +107,8 @@ class Model():
 									feed_dict={
 										self.x: X_batch,
 										self.y: y_batch,
-										self.keep_prob: 1.0
+										self.keep_prob: 1.0,
+										self.phase_train: False
 									})
 
 				train_acc = accuracy(train_pred, y_batch[:,1:6])
@@ -185,21 +189,80 @@ def accuracy2(predictions, labels):
 def conv2d(x, W):
 	return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='VALID')
 
-def max_pool_2x2(x, number):
-	return tf.nn.max_pool(
-				x, 
-				ksize=[1,2,2,1], 
-				strides=[1,2,2,1], 
-				padding='SAME',
-				name='pool' + str(number))
+def inference(images, keep_prob, phase_train):
+	conv1 = Network.convolution2D(
+				images, 
+				DEPTH1, 
+				[5, 5], 
+				padding="VALID", 
+				phase_train=phase_train, 
+				use_batch_norm=True, 
+				name="Conv1")
+	h_conv1 = tf.nn.relu(conv1)
+	print(h_conv1.get_shape().as_list())
 
-def normalize(x, number):
-	return tf.nn.local_response_normalization(
-				x,
-				bias=1.0,
-				alpha = 0.001 / 9.0,
-				beta = 0.75,
-				name='norm' + str(number))
+	pool1 = Network.max_pool_2x2(h_conv1, 1)
+	print(pool1.get_shape().as_list())
+
+	conv2 = Network.convolution2D(
+				pool1,
+				DEPTH2,
+				[1, 1],
+				padding="VALID",
+				phase_train=phase_train,
+				use_batch_norm=True,
+				name="Conv2")
+	h_conv2 = tf.nn.relu(conv2)
+	print(h_conv2.get_shape().as_list())
+	conv3 = Network.convolution2D(
+				h_conv2,
+				DEPTH3,
+				[3, 3],
+				padding="VALID",
+				phase_train=phase_train,
+				use_batch_norm=True,
+				name="Conv3")
+	h_conv3 = tf.nn.relu(conv3)
+	print(h_conv3.get_shape().as_list())
+
+	pool2 = Network.max_pool_2x2(h_conv3, 2)
+	print(pool2.get_shape().as_list())
+
+	conv4 = Network.convolution2D(
+				pool2,
+				DEPTH4,
+				[3, 3],
+				padding="VALID",
+				phase_train=phase_train,
+				use_batch_norm=True,
+				name="Conv4")
+	h_conv4 = tf.nn.relu(conv4)
+	print(h_conv4.get_shape().as_list())
+
+	pool3 = Network.max_pool_2x2(h_conv4, 3)
+	print(pool3.get_shape().as_list())
+
+	conv5 = Network.convolution2D(
+				pool3,
+				DEPTH5,
+				[3, 3],
+				padding="VALID",
+				phase_train=phase_train,
+				use_batch_norm=True,
+				name="Conv5")
+	h_conv5 = tf.nn.relu(conv5)
+	print(h_conv5.get_shape().as_list())
+
+	pool4 = Network.max_pool_2x2(h_conv5, 4)
+	print(pool4.get_shape().as_list())
+
+	pool5 = Network.max_pool_2x2(pool4, 5)
+	print(pool5.get_shape().as_list())
+
+	flatten = tf.reshape(pool5, [-1, DEPTH5])
+	print(flatten.get_shape().as_list())
+
+	return flatten
 
 def inference(images, keep_prob):
 	tf.image_summary('input', images, 5)
@@ -528,3 +591,8 @@ def prediction(logits):
 def display_prediction(prediction):
 	with tf.variable_scope('display') as scope:
 		return tf.transpose(tf.argmax(prediction, 2))
+
+if __name__ == "__main__":
+	model = Model()
+	model.load_data(1)
+	model.do_training()

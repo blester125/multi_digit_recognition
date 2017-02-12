@@ -16,12 +16,15 @@ from Generate_Dataset import generate_dataset
 from Data_Split import split
 from Save import save
 from Preprocess import preprocess_camera, preprocess_file_image, normalize
+from Network import reshape_input
 
 import Analytics
-import Network
+import Model
 
 CAMERA_MAX_HEIGHT = 480
 CAMERA_MAX_WIDTH = 640
+TRAIN_SPLIT = 400
+EXTRA_SPLIT = 200
 
 def download_data():
 	url = 'http://ufldl.stanford.edu/housenumbers/'
@@ -38,7 +41,12 @@ def extract_data(train_filename, test_filename, extra_filename):
 	extra_folder = extract(extra_filename)
 	return train_folder, test_folder, extra_folder
 
-def process_and_visualize(train_folder="data/train", test_folder="data/test", extra_folder="data/extra", display="", single=False):
+def process_and_visualize(
+		train_folder="data/train", 
+		test_folder="data/test", 
+		extra_folder="data/extra", 
+		display="", 
+		single=False):
 	if not(
 		os.path.exists("data/train") or 
 		os.path.exists("data/test") or 
@@ -54,24 +62,30 @@ def process_and_visualize(train_folder="data/train", test_folder="data/test", ex
 		# no folders found, need to extract the tar.gz
 		train_folder, test_folder, extra_folder = extract_data(tr, t, e)
 	
-	# Set sequence lengths to 0 so multiple runs do not add to old run totals
+	##
+	# Set sequence lengths to so multiple runs do not add to old run totals
 	Analytics.load()
-	Analytics.sequence_lengths = {'data/train': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
-								  'data/extra': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
-								  'data/test' : {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}}
+	Analytics.sequence_lengths = {
+							'data/train': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
+							'data/extra': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
+							'data/test' : {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}}
 	Analytics.save()
 
+	##
+	# Set the number of datapoints to create based on one image. 
 	data_points = 5
 	if single:
 		data_points = 1
-
-	# Get the DigitStructs for Training Data
+	##
+	# Get the DigitStructs for Training Data.
 	fin = os.path.join(train_folder, 'digitStruct.mat')
 	dsf = DigitStructFile(fin)
 	print("Parsing the training data from the digitStruct.mat file")
 	train_data = dsf.get_all_digit_structure_by_digit()
 	print("Parsed training data")
 
+	##
+	# Display training examples.
 	if display != "":
 		print("Displaying Examples with bounding boxes")
 		example_indeces = np.random.randint(0, len(train_data), size=5)
@@ -81,11 +95,15 @@ def process_and_visualize(train_folder="data/train", test_folder="data/test", ex
 		Analytics.save()
 		for e in examples:
 			display_example(e, train_folder)
-	
-	# Preprocess Training data and fetch labels
+	##
+	# Preprocess Training data and fetch labels.
 	print("Generating data set and processing data.")
-	train_dataset, train_labels = generate_dataset(train_data, train_folder, single)
-
+	train_dataset, train_labels = generate_dataset(
+									train_data, 
+									train_folder, 
+									single)
+	##
+	# Display the processed data.
 	if display != "":
 		print("Displaying examples of preprocessed images")
 		examples = train_dataset[example_indeces]
@@ -93,59 +111,76 @@ def process_and_visualize(train_folder="data/train", test_folder="data/test", ex
 		for e, l in zip(examples, labels):
 			print("The Label for this is:", l)
 			display_processed_example(e)
-
-	#Delete things to free up space
+	##
+	#Delete things to free up space.
 	if display != "":
 		del example_indeces
 		del examples
 		del labels
 	del train_data
 
-	train_dataset, train_labels, valid_dataset, valid_labels = split(train_dataset,
-																	 train_labels,
-																	 400 * data_points)
+	##
+	# Split the data into training and validation data.
+	(train_dataset, 
+	 train_labels, 
+	 valid_dataset, 
+	 valid_labels) = split(train_dataset,
+						   train_labels,
+						   TRAIN_SPLIT * data_points)
+	##
+	# Save the split data to disk.
 	np.save("temp_train_dataset1", train_dataset)
 	np.save("temp_train_labels1", train_labels)
 	np.save("temp_valid_dataset1", valid_dataset)
 	np.save("temp_valid_labels1", valid_labels)
-
+	##
+	# Delete data to free up space.
 	del train_dataset
 	del train_labels
 	del valid_dataset
 	del valid_labels
 
-	#Repeat for Extra Data
+	##
+	#Repeat the process for Extra Data.
 	fin = os.path.join(extra_folder, 'digitStruct.mat')
 	dsf = DigitStructFile(fin)
 	print("Parsing the extra data from the digitStruct.mat file")
 	extra_data = dsf.get_all_digit_structure_by_digit()
 	print("Parsed extra data")
-
+	##
 	# Preprocess extra data and fetch labels
 	print("Generating data set and processing data.")
 	extra_dataset, extra_labels = generate_dataset(extra_data, extra_folder, single)
-
-	# Delete to free space
+	##
+	# Delete data to free space.
 	del extra_data
 
-	train_dataset, train_labels, valid_dataset, valid_labels = split(extra_dataset,
-																	 extra_labels,
-																	 200 * data_points)
+	##
+	# Split the data into training and validation sets.
+	(train_dataset, 
+	 train_labels, 
+	 valid_dataset, 
+	 valid_labels) = split(extra_dataset,
+						   extra_labels,
+						   EXTRA_SPLIT * data_points)
+	##
+	# Save the split data onto disk.
 	np.save("temp_train_dataset2", train_dataset)
 	np.save("temp_train_labels2", train_labels)
 	np.save("temp_valid_dataset2", valid_dataset)
 	np.save("temp_valid_labels2", valid_labels)
 
+	##
+	# Delete datasets to free up space.
 	del train_dataset
 	del train_labels
 	del valid_dataset
 	del valid_labels
-
-	# Delete to free space
 	del extra_dataset
 	del extra_labels
 
-	# Create the Training and Validation sets
+	##
+	# Create the Training and Validation sets.
 	print("Creating the Training and Validation sets")
 	td1 = np.load("temp_train_dataset1.npy")
 	td2 = np.load("temp_train_dataset2.npy")
@@ -153,22 +188,27 @@ def process_and_visualize(train_folder="data/train", test_folder="data/test", ex
 	del td1
 	del td2
 	print(train_dataset.shape)
+	##
+	# Find the mean and standard deviation of the training set.
 	mean = np.mean(train_dataset)
 	std = np.std(train_dataset)
 
-	print("Train")
-	print(mean)
-	print(std)
+	##
+	# Save the stats about the training set.
 	Analytics.load()
 	Analytics.mean = mean
 	Analytics.std = std
 	Analytics.data_set_size['train'] = train_dataset.shape[0]
 	Analytics.save()
 	
+	##
+	# Normalize the training data.
 	train_dataset = normalize(train_dataset, mean, std)
 	np.save("data/train_dataset", train_dataset)
 	del train_dataset
 
+	##
+	# Create the training labels.
 	tl1 = np.load("temp_train_labels1.npy")
 	tl2 = np.load("temp_train_labels2.npy")
 	train_labels = np.concatenate((tl1, tl2), axis=0)
@@ -177,11 +217,16 @@ def process_and_visualize(train_folder="data/train", test_folder="data/test", ex
 	np.save("data/train_labels", train_labels)
 	del train_labels
 
+	##
+	# Create the validation set
 	vd1 = np.load("temp_valid_dataset1.npy")
 	vd2 = np.load("temp_valid_dataset2.npy")
 	valid_dataset = np.concatenate((vd1, vd2), axis=0)
 	del vd1
 	del vd2
+	##
+	# Normalize the validation dataset with the mean and standard deviation 
+	# of the training set.
 	valid_dataset = normalize(valid_dataset, mean, std)
 	np.save("data/valid_dataset", valid_dataset)
 	Analytics.load()
@@ -190,6 +235,8 @@ def process_and_visualize(train_folder="data/train", test_folder="data/test", ex
 	print(valid_dataset.shape)
 	del valid_dataset
 
+	##
+	# Create the Validation labels.
 	vl1 = np.load("temp_valid_labels1.npy")
 	vl2 = np.load("temp_valid_labels2.npy")
 	valid_labels = np.concatenate((vl1, vl2), axis=0)
@@ -225,32 +272,22 @@ def process_and_visualize(train_folder="data/train", test_folder="data/test", ex
 	print("Generating data set and processing data.")
 	test_dataset, test_labels = generate_dataset(test_data, test_folder, single)
 
+	##
+	# Normalize the test dataset with the mean and standard deviation
+	# from the training set.
 	test_dataset = normalize(test_dataset, mean, std)
 	np.save("data/test_dataset", test_dataset)
 	np.save("data/test_labels", test_labels)
-
+	##
 	# Delete to free space
 	del test_data
 	del fin
 	del dsf
-
-	#Save Data to files
-	# save(
-	# 		train_dataset,
-	# 		train_labels,
-	# 		valid_dataset,
-	# 		valid_labels,
-	# 		test_dataset,
-	# 		test_labels
-	# 	)
-
-	#del train_dataset
-	#del train_labels
-	#del valid_dataset
-	#del valid_labels
 	del test_dataset
 	del test_labels
 	
+	##
+	# Display and save dataset statistics.
 	Analytics.display()
 	Analytics.save()
 
@@ -300,7 +337,7 @@ def use_camera(net):
 		# Press 's' to take an image and predict with it
 		if cv2.waitKey(1) & 0xFF == ord('p'):
 			image = preprocess_camera(frame, y, x, width, height)
-			image = Network.reshape_input(image)
+			image = reshape_input(image)
 			net.predict(image)
 		# press 'q' to quit
 		if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -326,7 +363,7 @@ def predict_image(net):
 			print("Good-bye.")
 			exit()
 	image = preprocess_file_image(img)
-	image = Network.reshape_input(image)
+	image = reshape_input(image)
 	net.predict(image)
 
 ##
@@ -350,7 +387,7 @@ def get_user_input(prompt, error):
 	return user_input
 
 def main():
-	#Analytics.load()
+	Analytics.load()
 	#Analytics.save()
 	if not(
 		os.path.exists("data/train_dataset.npy") or
@@ -361,11 +398,11 @@ def main():
 		os.path.exists("data/test_labels.npy")
 		):
 		print("Data does not exist, downloading now.")
-		#tr, t, e = download_data()
-		#train_folder, test_folder, extra_folder = extract_data(tr, t, e)
+		tr, t, e = download_data()
+		train_folder, test_folder, extra_folder = extract_data(tr, t, e)
 
 	# create my network object and the Tensorflow graph for it
-	net = Network.Network()
+	net = Modle.Model()
 	quit = False
 	# Loop options because Tensorflow takes so long to import
 	while quit == False:
@@ -375,18 +412,20 @@ def main():
 		print("4. Example Use")
 		print("5. Use the model")
 		print("6. Quit")
-		user_input = get_user_input("Select a number: ", "Please enter a number")
+		user_input = get_user_input(
+							"Select a number: ", "Please enter a number")
 		if user_input == 1:
 			print("Press enter to just process the data")
-			user_input = raw_input("Press y to visualize it also: ") 
-			process_and_visualize(display=user_input)
+			user_input = raw_input("Press y to visualize it also: ")
+			user_input2 = get_user_input(
+								"Create 1 or 5 inputs from the training data?")
+			process_and_visualize(display=user_input, single=user_input2)
 		elif user_input == 2:
 			user_input = get_user_input(
-							"How many training steps? ", 
-							"Please enter a number")
-			net.set_num_steps(int(user_input))
+							"""Which dataset do you wish to load?
+							1 or 5 datapoints per image.""")
 			# Load in the data from the .npy files
-			net.load_data()
+			net.load_data(user_input)
 			net.do_training()
 		elif user_input == 3:
 			Analytics.display()

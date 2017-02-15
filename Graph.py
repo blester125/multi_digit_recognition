@@ -1,10 +1,12 @@
+import matplotlib.pyplot as plt
+
 class Graph():
 	def __init__(self, title="title", x_label="x", y_label="y"):
 		self.figure = plt.gcf()
 		self.figure.show()
 		self.figure.canvas.draw()
 		self.min = 0
-		self.max = 0
+		self.max = 100
 		plt.title(title)
 		plt.xlabel(x_label)
 		plt.ylabel(y_label)

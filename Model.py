@@ -28,15 +28,16 @@ DEPTH3 = 64
 DEPTH4 = 128
 DEPTH5 = 256
 NUM_HIDDEN1 = 256
-NUM_HIDDEN2 = 16
+NUM_HIDDEN2 = 128
 
 # beta_regul = 1e-3
 
 class Model():
-	def __init__(self, batch_size=BATCH_SIZE, savepath="model.ckpt", logdir="log"):
+	def __init__(self, batch_size=BATCH_SIZE, epochs=20, savepath="model.ckpt", logdir="log"):
 		self.savepath = savepath
 		self.logdir = logdir
 		self.batch_size = batch_size
+		self.epochs = epochs
 
 		self.sess = tf.Session()
 		self.x = tf.placeholder(
@@ -81,7 +82,7 @@ class Model():
 		print("Training")
 		with self.sess.as_default():
 			start = time.time()
-			for epoch in range(20):
+			for epoch in range(self.epochs):
 				offset = 0
 				#epoch_loss = 0
 				while offset < self.train_dataset.shape[0]:
@@ -102,7 +103,7 @@ class Model():
 										 	self.phase_train: True
 										 })
 					#epoch_loss += l * X_batch.get_shape().as_list()[0]
-					offset = offset = min(offset + self.batch_size, self.train_dataset.shape[0])
+					offset = min(offset + self.batch_size, self.train_dataset.shape[0])
 				train_pred = self.prediction.eval(
 									feed_dict={
 										self.x: X_batch,
@@ -112,20 +113,38 @@ class Model():
 									})
 
 				train_acc = accuracy(train_pred, y_batch[:,1:6])
-				print("Training Accuracy", train_acc)
+				print("Training Accuracy", train_acc, "at Epoch:", epoch)
 				self.train_accs.append([epoch, train_acc])
 
 			
-				valid_pred = self.prediction.eval(
-									feed_dict={
-										self.x: self.valid_dataset, 
-										self.y: self.valid_labels, 
-										self.keep_prob: 1.0
-									}
-							)
-				valid_acc = accuracy(valid_pred, self.valid_labels[:,1:6])
+				offset = 0
+				valid_acc = 0
+				count = 0
+				while offset < self.valid_dataset.shape[0]:
+					X_batch, y_batch = load_minibatch(
+											self.valid_dataset,
+											self.valid_labels,
+											offset,
+											self.batch_size
+										)
+					valid_pred = self.prediction.eval(
+										feed_dict={
+											self.x: X_batch, 
+											self.y: y_batch, 
+											self.keep_prob: 1.0,
+											self.phase_train: False
+										}
+								)
+					temp_valid_acc = accuracy(valid_pred, y_batch[:,1:6])
+					old_offset = offset
+					offset = min(offset + self.batch_size, self.valid_dataset.shape[0])
+					count += 1
+					#valid_acc = ((valid_acc * old_offset) + 
+					#			 (temp_valid_acc * self.batch_size)/offset)
+					valid_acc += temp_valid_acc
+				valid_acc = valid_acc / count
 				self.valid_accs.append([epoch, valid_acc])
-				print("Valididation Accuracy", valid_acc)
+				print("Valididation Accuracy", valid_acc, "at Epoch:", epoch)
 
 				save_path = self.saver.save(self.sess, self.savepath)
 				self.writer.add_summary(summary, epoch)
@@ -133,17 +152,36 @@ class Model():
 				# Graph of accuracies		
 				self.graph.update([x[0] for x in self.train_accs], [y[1] for y in self.train_accs],"b", "Training")
 				self.graph.update([x[0] for x in self.valid_accs], [y[1] for y in self.valid_accs], "r", "Validation")
-				if epoch == 0:
-					self.graph.addLegend()
-			
-			test_pred = self.prediction.eval(
+				#if epoch == 0:
+				#	self.graph.addLegend()
+			print("Evaluating Test Dataset")
+			offset = 0
+			test_acc = 0
+			count = 0
+			while offset < self.test_dataset.shape[0]:
+				X_batch, y_batch = load_minibatch(
+										self.test_dataset,
+										self.test_labels,
+										offset,
+										self.batch_size
+									)
+				test_pred = self.prediction.eval(
 								feed_dict={
-									self.x: self.test_dataset, 
-									self.keep_prob: 1.0
+									self.x: X_batch, 
+									self.y: y_batch,
+									self.keep_prob: 1.0,
+									self.phase_train: False
 								}
 							)
-			test_acc = accuracy(test_pred, self.test_labels[:,1:6])
-			print("Test accuracy: %.1f%%" % test_acc)
+				temp_test_acc = accuracy(test_pred, y_batch[:, 1:6])
+				old_offset = offset
+				offset = min(offset + self.batch_size, self.test_dataset.shape[0])
+				count += 1
+				#test_acc = ((test_acc * old_offset) +
+				#			(temp_test_acc * self.batch_size)/offset)
+				test_acc += temp_test_acc
+			test_acc = test_acc / count
+			print("Test accuracy: %.1f%%" % (test_acc))
 
 			Analytics.train_time = time.time() - start
 			Analytics.train_accuracy = train_acc
@@ -204,8 +242,10 @@ def inference(images, keep_prob, phase_train):
 	pool1 = Network.max_pool_2x2(h_conv1, 1)
 	print(pool1.get_shape().as_list())
 
+	dropout1 = tf.nn.dropout(pool1, keep_prob, name="dropout1")
+
 	conv2 = Network.convolution2D(
-				pool1,
+				dropout1,
 				DEPTH2,
 				[1, 1],
 				padding="VALID",
@@ -228,8 +268,10 @@ def inference(images, keep_prob, phase_train):
 	pool2 = Network.max_pool_2x2(h_conv3, 2)
 	print(pool2.get_shape().as_list())
 
+	dropout2 = tf.nn.dropout(pool2, keep_prob, name="dropout2")
+
 	conv4 = Network.convolution2D(
-				pool2,
+				dropout2,
 				DEPTH4,
 				[3, 3],
 				padding="VALID",
@@ -242,8 +284,10 @@ def inference(images, keep_prob, phase_train):
 	pool3 = Network.max_pool_2x2(h_conv4, 3)
 	print(pool3.get_shape().as_list())
 
+	dropout3 = tf.nn.dropout(pool3, keep_prob, name="dropout3")
+
 	conv5 = Network.convolution2D(
-				pool3,
+				dropout3,
 				DEPTH5,
 				[3, 3],
 				padding="VALID",
@@ -264,54 +308,97 @@ def inference(images, keep_prob, phase_train):
 
 	hidden1 = Network.fully_connected(
 				flatten,
-				NUM_HIDDEN2,
+				NUM_HIDDEN1,
 				name="hidden1")
 	hidden2 = Network.fully_connected(
 				flatten,
-				NUM_HIDDEN2,
+				NUM_HIDDEN1,
 				name="hidden2")
 	hidden3 = Network.fully_connected(
 				flatten,
-				NUM_HIDDEN2,
+				NUM_HIDDEN1,
 				name="hidden3")
 	hidden4 = Network.fully_connected(
 				flatten,
-				NUM_HIDDEN2,
+				NUM_HIDDEN1,
 				name="hidden4")
 	hidden5 = Network.fully_connected(
 				flatten,
-				NUM_HIDDEN2,
+				NUM_HIDDEN1,
 				name="hidden5")
 	hidden6 = Network.fully_connected(
 				flatten,
-				NUM_HIDDEN2,
+				NUM_HIDDEN1,
 				name="hidden6")
-	logit1 = Network.softmax(
-				hidden1,
+
+	dropout_h_1 = tf.nn.dropout(hidden1, keep_prob, name="dropout_h_1")
+	dropout_h_2 = tf.nn.dropout(hidden2, keep_prob, name="dropout_h_2")
+	dropout_h_3 = tf.nn.dropout(hidden3, keep_prob, name="dropout_h_3")
+	dropout_h_4 = tf.nn.dropout(hidden4, keep_prob, name="dropout_h_4")
+	dropout_h_5 = tf.nn.dropout(hidden5, keep_prob, name="dropout_h_5")
+	dropout_h_6 = tf.nn.dropout(hidden6, keep_prob, name="dropout_h_6")
+	
+	logit1 = Network.fully_connected(
+				dropout_h_1,
 				NUM_LENGTHS,
 				name="logit1")
-	logit2 = Network.softmax(
-				hidden2,
+	logit2 = Network.fully_connected(
+				dropout_h_2,
 				NUM_LABELS,
 				name="logit2")
-	logit3 = Network.softmax(
-				hidden3,
+	logit3 = Network.fully_connected(
+				dropout_h_3,
 				NUM_LABELS,
 				name="logit3")
-	logit4 = Network.softmax(
-				hidden4,
+	logit4 = Network.fully_connected(
+				dropout_h_4,
 				NUM_LABELS,
 				name="logit4")
-	logit5 = Network.softmax(
-				hidden5,
+	logit5 = Network.fully_connected(
+				dropout_h_5,
 				NUM_LABELS,
 				name="logit5")
-	logit6 = Network.softmax(
-				hidden6,
+	logit6 = Network.fully_connected(
+				dropout_h_6,
 				NUM_LABELS,
 				name="logit6")
 	return [logit1, logit2, logit3, logit4, logit5, logit6]
 	
+def loss(logits, labels):
+	loss_per_digit = [tf.reduce_mean(
+							tf.nn.sparse_softmax_cross_entropy_with_logits(
+							logits[i],
+							labels[:,i]
+						))
+						for i in range(NUM_LOGITS)]
+	loss_value = tf.add_n(loss_per_digit)
+	tf.scalar_summary('loss', loss_value)
+	return loss_value
+
+def train(total_loss):
+	with tf.variable_scope('train') as scope:
+		global_step = tf.Variable(0)
+		learning_rate = tf.train.exponential_decay(0.05, global_step, 10000, 0.95)
+		optimizer = tf.train.AdagradOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
+	return optimizer
+
+def prediction(logits):
+	with tf.variable_scope('prediction') as scope:
+		pred = tf.pack([tf.nn.softmax(logits[1]),\
+						tf.nn.softmax(logits[2]),\
+						tf.nn.softmax(logits[3]),\
+						tf.nn.softmax(logits[4]),\
+						tf.nn.softmax(logits[5])])
+	return pred
+
+def display_prediction(prediction):
+	with tf.variable_scope('display') as scope:
+		return tf.transpose(tf.argmax(prediction, 2))
+
+if __name__ == "__main__":
+	model = Model(epochs=300)
+	model.load_data(5)
+	model.do_training()
 
 # def inference(images, keep_prob):
 # 	tf.image_summary('input', images, 5)
@@ -610,38 +697,3 @@ def inference(images, keep_prob, phase_train):
 
 # 		return [logits1, logits2, logits3, logits4, logits5, logits6]
 
-def loss(logits, labels):
-	loss_per_digit = [tf.reduce_mean(
-							tf.nn.sparse_softmax_cross_entropy_with_logits(
-							logits[i],
-							labels[:,i]
-						))
-						for i in range(NUM_LOGITS)]
-	loss_value = tf.add_n(loss_per_digit)
-	tf.scalar_summary('loss', loss_value)
-	return loss_value
-
-def train(total_loss):
-	with tf.variable_scope('train') as scope:
-		global_step = tf.Variable(0)
-		learning_rate = tf.train.exponential_decay(0.05, global_step, 10000, 0.95)
-		optimizer = tf.train.AdagradOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
-	return optimizer
-
-def prediction(logits):
-	with tf.variable_scope('prediction') as scope:
-		pred = tf.pack([tf.nn.softmax(logits[1]),\
-						tf.nn.softmax(logits[2]),\
-						tf.nn.softmax(logits[3]),\
-						tf.nn.softmax(logits[4]),\
-						tf.nn.softmax(logits[5])])
-	return pred
-
-def display_prediction(prediction):
-	with tf.variable_scope('display') as scope:
-		return tf.transpose(tf.argmax(prediction, 2))
-
-if __name__ == "__main__":
-	model = Model()
-	#model.load_data(1)
-	model.do_training()

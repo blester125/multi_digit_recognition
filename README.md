@@ -7,6 +7,13 @@ This project detects multidigit sequences in natural scenes.
 The dataset for this project can be found at 
 http://ufldl.stanford.edu/housenumbers/
 
+This project has been updated from when I created it as the Machine 
+Learning Capstone project for Udacity. I have added Batch normalization 
+and a deeper network as well as creating 5 data points from each picture.
+The write-up included is out of date. 
+
+The model gets 98 precent training accuracy, 94 precent validation accuracy, and 95 precent test accurcay after 100 epochs. The model included Batch Norm, Dropout, and Weight Decay for regularization. Using so much regularization and still having so much difference between the training and validation error means that the training distribuation is very different than the validation distribution. To solve this more data is most likely needed.
+
 The following libraries are required:
 
  * Tensorflow 0.9.0

@@ -234,7 +234,8 @@ def inference(images, keep_prob, phase_train):
 				[5, 5], 
 				padding="VALID", 
 				phase_train=phase_train, 
-				use_batch_norm=True, 
+				use_batch_norm=True,
+				weight_decay=0.04, 
 				name="Conv1")
 	h_conv1 = tf.nn.relu(conv1)
 	print(h_conv1.get_shape().as_list())
@@ -251,6 +252,7 @@ def inference(images, keep_prob, phase_train):
 				padding="VALID",
 				phase_train=phase_train,
 				use_batch_norm=True,
+				weight_decay=0.04,
 				name="Conv2")
 	h_conv2 = tf.nn.relu(conv2)
 	print(h_conv2.get_shape().as_list())
@@ -261,6 +263,7 @@ def inference(images, keep_prob, phase_train):
 				padding="VALID",
 				phase_train=phase_train,
 				use_batch_norm=True,
+				weight_decay=0.04,
 				name="Conv3")
 	h_conv3 = tf.nn.relu(conv3)
 	print(h_conv3.get_shape().as_list())
@@ -277,6 +280,7 @@ def inference(images, keep_prob, phase_train):
 				padding="VALID",
 				phase_train=phase_train,
 				use_batch_norm=True,
+				weight_decay=0.04,
 				name="Conv4")
 	h_conv4 = tf.nn.relu(conv4)
 	print(h_conv4.get_shape().as_list())
@@ -293,6 +297,7 @@ def inference(images, keep_prob, phase_train):
 				padding="VALID",
 				phase_train=phase_train,
 				use_batch_norm=True,
+				weight_decay=0.04,
 				name="Conv5")
 	h_conv5 = tf.nn.relu(conv5)
 	print(h_conv5.get_shape().as_list())
@@ -309,26 +314,32 @@ def inference(images, keep_prob, phase_train):
 	hidden1 = Network.fully_connected(
 				flatten,
 				NUM_HIDDEN1,
+				weight_decay=0.04,
 				name="hidden1")
 	hidden2 = Network.fully_connected(
 				flatten,
 				NUM_HIDDEN1,
+				weight_decay=0.04,
 				name="hidden2")
 	hidden3 = Network.fully_connected(
 				flatten,
 				NUM_HIDDEN1,
+				weight_decay=0.04,
 				name="hidden3")
 	hidden4 = Network.fully_connected(
 				flatten,
 				NUM_HIDDEN1,
+				weight_decay=0.04,
 				name="hidden4")
 	hidden5 = Network.fully_connected(
 				flatten,
 				NUM_HIDDEN1,
+				weight_decay=0.04,
 				name="hidden5")
 	hidden6 = Network.fully_connected(
 				flatten,
 				NUM_HIDDEN1,
+				weight_decay=0.04,
 				name="hidden6")
 
 	dropout_h_1 = tf.nn.dropout(hidden1, keep_prob, name="dropout_h_1")
@@ -341,26 +352,32 @@ def inference(images, keep_prob, phase_train):
 	logit1 = Network.fully_connected(
 				dropout_h_1,
 				NUM_LENGTHS,
+				weight_decay=0.04,
 				name="logit1")
 	logit2 = Network.fully_connected(
 				dropout_h_2,
 				NUM_LABELS,
+				weight_decay=0.04,
 				name="logit2")
 	logit3 = Network.fully_connected(
 				dropout_h_3,
 				NUM_LABELS,
+				weight_decay=0.04,
 				name="logit3")
 	logit4 = Network.fully_connected(
 				dropout_h_4,
 				NUM_LABELS,
+				weight_decay=0.04,
 				name="logit4")
 	logit5 = Network.fully_connected(
 				dropout_h_5,
 				NUM_LABELS,
+				weight_decay=0.04,
 				name="logit5")
 	logit6 = Network.fully_connected(
 				dropout_h_6,
 				NUM_LABELS,
+				weight_decay=0.04,
 				name="logit6")
 	return [logit1, logit2, logit3, logit4, logit5, logit6]
 	
@@ -396,7 +413,7 @@ def display_prediction(prediction):
 		return tf.transpose(tf.argmax(prediction, 2))
 
 if __name__ == "__main__":
-	model = Model(epochs=300)
+	model = Model(epochs=60)
 	model.load_data(5)
 	model.do_training()
 
